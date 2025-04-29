@@ -1,18 +1,13 @@
-// app/advisor/layout.tsx
-
-import { Inter } from 'next/font/google'
-
-const inter = Inter({ subsets: ['latin'] })
-
-export const metadata = {
-  title: 'Groq Chat App',
-  description: 'A fast AI chat experience',
-}
+import Head from 'next/head';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
-    </html>
-  )
+    <>
+      <Head>
+        <title>Groq Chat App</title>
+        <meta name="description" content="A fast AI chat experience" />
+      </Head>
+      <div>{children}</div>
+    </>
+  );
 }
