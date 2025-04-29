@@ -3,7 +3,7 @@ import { DivideIcon as LucideIcon } from 'lucide-react';
 interface FeatureCardProps {
   title: string;
   description: string;
-  icon: LucideIcon;
+  icon: typeof LucideIcon;
   color: string;
 }
 
