@@ -1,4 +1,4 @@
-// app/layout.tsx
+// app/advisor/layout.tsx
 
 import { Inter } from 'next/font/google'
 
@@ -9,12 +9,10 @@ export const metadata = {
   description: 'A fast AI chat experience',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        {children}
-      </body>
+      <body className={inter.className}>{children}</body>
     </html>
   )
 }
