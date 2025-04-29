@@ -1,22 +1,30 @@
+// pages/advisor/index.tsx
+
 import { useState } from 'react';
 import Head from 'next/head';
-import { SendHorizontal, FileText, MicIcon, ImageIcon, Trash } from 'lucide-react';
+import {
+  SendHorizontal,
+  FileText,
+  MicIcon,
+  ImageIcon,
+  Trash,
+} from 'lucide-react';
 import { DashboardLayout } from '../../components/dashboard/DashboardLayout';
 import { ChatMessage } from '../../components/advisor/ChatMessage';
 import { DocumentUpload } from '../../components/advisor/DocumentUpload';
 
-// Define message types to match the API
 type Message = {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp?: Date;
-}
+};
 
 export default function Advisor() {
   const [messages, setMessages] = useState<Array<Message & { timestamp: Date }>>([
     {
       role: 'assistant',
-      content: 'Hi there! I\'m your AI financial assistant. How can I help you with your financial planning, investments, or other money matters today?',
+      content:
+        "Hi there! I'm your AI financial assistant. How can I help you with your financial planning, investments, or other money matters today?",
       timestamp: new Date(),
     },
   ]);
@@ -26,63 +34,56 @@ export default function Advisor() {
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    
     if (!input.trim()) return;
-    
+
     const userMessage = {
       role: 'user' as const,
       content: input,
       timestamp: new Date(),
     };
-    
+
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setLoading(true);
-    
+
     try {
-      // Prepare conversation history for API request
-      // We need to strip timestamps and only include roles and content
       const apiHistory = messages
-        .filter(msg => msg.role !== 'system')
-        .map(({ role, content }) => ({ 
-          role, 
-          content 
-        }));
-      
-      // Call our API endpoint that connects to Groq
+        .filter((msg) => msg.role !== 'system')
+        .map(({ role, content }) => ({ role, content }));
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           message: input,
-          history: apiHistory
+          history: apiHistory,
         }),
       });
-      
-      if (!response.ok) {
-        throw new Error(`API responded with status: ${response.status}`);
-      }
-      
+
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+
       const data = await response.json();
-      
-      if (data.content) {
-        const aiResponse = {
-          role: 'assistant' as const,
-          content: data.content,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, aiResponse]);
-      } else {
-        throw new Error(data.error || 'Failed to get response');
-      }
-    } catch (error) {
-      console.error('Error getting financial advice:', error);
-      const errorMessage = {
+
+      const aiResponse = {
         role: 'assistant' as const,
-        content: 'Sorry, I encountered an issue processing your financial question. Please try again later.',
+        content:
+          data.content ||
+          'Sorry, I couldn’t generate a response. Please try again.',
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, errorMessage]);
+
+      setMessages((prev) => [...prev, aiResponse]);
+    } catch (error) {
+      console.error('Chat error:', error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content:
+            'Sorry, I encountered an issue processing your request. Please try again later.',
+          timestamp: new Date(),
+        },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -90,72 +91,67 @@ export default function Advisor() {
 
   const handleFileUpload = async (files: File[]) => {
     if (!files.length) return;
-    
-    // Add user upload message
+
     const uploadMessage = {
       role: 'user' as const,
       content: `Uploaded financial document: ${files[0].name}`,
       timestamp: new Date(),
     };
-    
+
     setMessages((prev) => [...prev, uploadMessage]);
     setLoading(true);
-    
-    try {
-      // In a real implementation, you would:
-      // 1. Upload the file to your server
-      // 2. Extract text/data from the document
-      // 3. Send that data to Groq along with context
-      
-      // For now, we'll simulate this process
-      setTimeout(async () => {
-        // Simulate document analysis request to API
-        try {
-          const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              message: `Analyze this financial document: ${files[0].name}. It contains investment statements and portfolio allocation data.`,
-              history: messages.filter(msg => msg.role !== 'system').map(({ role, content }) => ({ role, content }))
-            }),
-          });
-          
-          if (!response.ok) {
-            throw new Error(`API responded with status: ${response.status}`);
-          }
-          
-          const data = await response.json();
-          
-          const aiResponse = {
-            role: 'assistant' as const,
-            content: data.content || "I've analyzed your financial document. Based on your investment statement, your portfolio appears to have some imbalances. Would you like specific recommendations to optimize your asset allocation?",
+
+    setTimeout(async () => {
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Analyze this financial document: ${files[0].name}. It contains investment statements and portfolio allocation data.`,
+            history: messages
+              .filter((msg) => msg.role !== 'system')
+              .map(({ role, content }) => ({ role, content })),
+          }),
+        });
+
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+        const data = await response.json();
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content:
+              data.content ||
+              "I've analyzed your financial document. Would you like optimization tips?",
             timestamp: new Date(),
-          };
-          
-          setMessages((prev) => [...prev, aiResponse]);
-        } catch (error) {
-          const errorMessage = {
-            role: 'assistant' as const,
-            content: 'Sorry, I encountered an issue analyzing your financial document. Please try again later.',
+          },
+        ]);
+      } catch (error) {
+        console.error('File analysis error:', error);
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content:
+              'Sorry, I had trouble analyzing the document. Try again later.',
             timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, errorMessage]);
-        } finally {
-          setLoading(false);
-          setShowUpload(false);
-        }
-      }, 1500);
-    } catch (error) {
-      console.error('Error processing document:', error);
-      setLoading(false);
-    }
+          },
+        ]);
+      } finally {
+        setLoading(false);
+        setShowUpload(false);
+      }
+    }, 1500);
   };
 
   const clearChat = () => {
     setMessages([
       {
         role: 'assistant',
-        content: 'Hi there! I\'m your AI financial assistant. How can I help you with your financial planning, investments, or other money matters today?',
+        content:
+          "Hi there! I'm your AI financial assistant. How can I help you with your financial planning, investments, or other money matters today?",
         timestamp: new Date(),
       },
     ]);
@@ -165,13 +161,18 @@ export default function Advisor() {
     <>
       <Head>
         <title>AI Financial Advisor | FinAssist</title>
-        <meta name="description" content="Get personalized financial advice powered by Groq AI" />
+        <meta
+          name="description"
+          content="Get personalized financial advice powered by Groq AI"
+        />
       </Head>
 
       <DashboardLayout>
         <div className="flex flex-col h-[calc(100vh-4rem)]">
           <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold text-accent-900">AI Financial Advisor</h1>
+            <h1 className="text-2xl font-bold text-accent-900">
+              AI Financial Advisor
+            </h1>
             <button
               onClick={clearChat}
               className="text-accent-600 hover:text-accent-900 flex items-center"
@@ -183,9 +184,13 @@ export default function Advisor() {
 
           <div className="flex-grow bg-white rounded-lg shadow overflow-hidden flex flex-col">
             <div className="flex-grow overflow-y-auto p-4 space-y-4">
-              {messages.map((message, index) => (
-                <ChatMessage key={index} message={message} />
-              ))}
+            {messages
+  .filter((msg): msg is { role: 'user' | 'assistant'; content: string; timestamp: Date } => msg.role !== 'system')
+  .map((message, index) => (
+    <ChatMessage key={index} message={message} />
+))}
+
+
               {loading && (
                 <div className="flex justify-center">
                   <div className="loading-dots">
@@ -199,7 +204,10 @@ export default function Advisor() {
 
             {showUpload && (
               <div className="p-4 border-t border-accent-200">
-                <DocumentUpload onUpload={handleFileUpload} onCancel={() => setShowUpload(false)} />
+                <DocumentUpload
+                  onUpload={handleFileUpload}
+                  onCancel={() => setShowUpload(false)}
+                />
               </div>
             )}
 
@@ -244,7 +252,7 @@ export default function Advisor() {
                 </button>
               </form>
               <div className="mt-2 text-xs text-accent-500 text-center">
-                Powered by Groq AI. Your financial data is encrypted and never shared with third parties.
+                Powered by Groq AI. Your financial data is encrypted and never shared.
               </div>
             </div>
           </div>
