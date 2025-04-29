@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Check if API key is configured
-    const apiKey = process.env.GROQ_API_KEY || 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 ;
+    const apiKey = process.env.GROQ_API_KEY || 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 ;
     if (!apiKey) {
       return NextResponse.json(
         { error: 'GROQ_API_KEY is not configured in environment variables' },
